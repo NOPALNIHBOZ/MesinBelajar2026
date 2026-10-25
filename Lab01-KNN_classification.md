@@ -393,6 +393,26 @@ Salin beberapa baris `TRAIN` untuk membuat dataset referensi lebih besar, misaln
 4. Apa perbedaan waktu inference dan waktu input melalui terminal serial? Mengapa *timing* tidak dilakukan saat `input()` atau `print()`?
 5. Jika data training diperbesar 10 kali, apa yang kemungkinan terjadi pada penggunaan memori dan waktu inference di ESP32? Apa yang perlu diukur untuk membuktikannya?
 
+
+***jawab***
+
+1.	KNN adalah algoritma berbasis instance (lazy learner) yang tidak membangun model matematika parametrik (tidak mencari koefisien bobot/slope seperti OLS). Meskipun demikian, data training tetap mutlak dibutuhkan karena seluruh data tersebut disimpan mentah-mentah di dalam memori untuk digunakan sebagai titik acuan/referensi saat menghitung jarak ke data baru pada saat inference.
+
+
+
+2.	Tanpa normalisasi (scaling), rentang nilai fitur temperatur (misal 30–80 °C) jauh lebih besar dibandingkan getaran (misal 1–9 mm/s). Dalam rumus jarak Euclidean, selisih angka pada temperatur akan mendominasi total kuadrat jarak secara masif, sehingga fitur getaran seolah-olah tidak dianggap oleh model. Normalisasi diperlukan agar kedua fitur memiliki rentang skala yang setara (misalnya antara 0 sampai 1), sehingga kontribusi jarak dari temperatur dan getaran menjadi adil dan seimbang.
+
+3. Tidak selalu. Berdasarkan hasil percobaan yang telah dilakukan, nilai K yang lebih besar tidak menjamin akurasi yang lebih tinggi. Akurasi sangat bergantung pada sebaran data dan struktur batas antar kelas nilai K yang terlalu besar justru dapat mengaburkan batas keputusan (boundary smoothing).
+
+4. •	Waktu inference adalah durasi waktu murni yang dibutuhkan mikrokontroler untuk melakukan komputasi algoritma (menghitung jarak Euclidean, mengurutkan, dan melakukan majority voting).
+
+   • 	Waktu input serial melibatkan proses komunikasi perangkat keras, kecepatan transmisi (baud rate), dan jeda waktu manusia mengetik di terminal.
+
+   •	Timing tidak boleh dilakukan pada input() atau print() karena hal tersebut hanya mengukur kecepatan respons serial dan waktu ketik manusia, bukan performa kecepatan komputasi algoritma yang objektif.
+
+5.	Jika data training diperbesar 10 kali, penggunaan memori RAM di ESP32 akan meningkat secara linier karena algoritma KNN menyimpan seluruh data latih mentah-mentah di dalam memori, dan waktu inference akan menjadi jauh lebih lambat akibat bertambahnya jumlah perhitungan jarak Euclidean yang harus diproses terhadap seluruh titik referensi (O(N)). Untuk membuktikannya secara empiris, hal yang perlu diukur adalah kapasitas memori bebas menggunakan fungsi gc.mem_free() sebelum dan sesudah data diperbesar, serta waktu eksekusi fungsi prediksi menggunakan pewaktu berbasis mikrodetik seperti time.ticks_us().
+
+   
 ## 14. Kesimpulan dan tugas
 
 **Kesimpulan:** KNN dapat ditulis dengan MicroPython dan dijalankan seluruhnya pada ESP32 tanpa sensor atau library machine learning. Parameter preprocessing dan pemisahan data training/test tetap penting meskipun perangkat sangat sederhana.
